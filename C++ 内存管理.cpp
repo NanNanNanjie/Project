@@ -1,8 +1,7 @@
 #include <iostream>
 
-using std::cout;
-using std::cin;
-using std::endl;
+using namespace std;
+
 //
 //static int Day[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 //
@@ -92,43 +91,129 @@ using std::endl;
 //	return 0;
 //}
 
-class A
+//class A
+//{
+//public:
+//	A(int a = 0)
+//		: _a(a)
+//	{
+//		cout << "A():" << this << endl;
+//	}
+//	~A()
+//	{
+//		cout << "~A():" << this << endl;
+//	}
+//private:
+//	int _a;
+//};
+//
+//int main()
+//{
+//	A* p1 = (A*)malloc(sizeof(A));
+//	if (p1 == NULL) {
+//		printf("malloc is failed\n");
+//	}
+//
+//	// 1. 申请堆上的空间
+//	// 2. 调用析构函数
+//	A* p2 = new A(0);
+//	// 也可以自己进行初始化
+//	A* p3 = new A(10);
+//
+//	// 1. 调用析构函数清理对象中的资源
+//	// 2. 释放p2指向的空间
+//	delete p2;
+//	delete p3;
+//
+//	A* p4 = new A[10]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+//	delete[] p4;
+//
+//	// 结论： new/delete是为自定义类型准备的：
+//	// 不仅在堆上申请出来，还会调用构造和析构进行对应的初始化和清理
+//
+//	// new/delete 和 new[]/delete[] 一定要匹配，否则可能就会编译报错
+//	// 自定义类型大概率出问题，内置类型不一定
+//}
+
+//int main()
+//{
+//	// malloc失败返回NULL
+//	char* p1 = (char*)malloc(1024u * 1024u * 1024u * 2 - 1);
+//	printf("%p\n", p1);
+//	
+//	// new失败，需要检查返回值，失败是抛异常
+//	try {
+//		size_t n = 0;
+//		while (1) {
+//			char* p2 = new char[1024 * 1024];
+//			n++;
+//			printf("%p->[%d]\n", p2, n);
+//
+//		}
+//	} catch (const exception& e) {
+//		cout << e.what() << endl;
+//	}
+//	
+//
+//	return 0;
+// }
+
+// operator new 与 operator delete函数
+// 作用：在堆上开空间（底层实现还是malloc）
+// 为什么不直接用malloc？答：封装malloc，如果失败了，可以给程序抛异常，但是malloc失败会返回空指针
+
+// new Type
+//   ||
+// call operator new -> malloc(失败抛异常)
+// call Type(构造函数)
+
+
+// 重载一个类专属的operator new
+struct ListNode
 {
-public:
-	A(int a = 0)
-		: _a(a)
-	{
-		cout << "A():" << this << endl;
+	int _val;
+	ListNode* _next;
+	// 内存池
+	static allocator<ListNode> _alloc;
+
+	// 默认条件下 operator new 使用全局库里面的
+	// ListNode类专属的 operator new，new这个类对象，就会调用自己实现的operator new
+	// 因为频繁申请，要调高效率
+	void* operator new(size_t n) {
+		// 内存池...
+		cout << "void* operator new -> 内存池申请" << endl;
+		void* obj = _alloc.allocate(1);
+		return obj;
+
 	}
-	~A()
-	{
-		cout << "~A():" << this << endl;
+
+	void operator delete(void* ptr) {
+		cout << "void* operator new -> 内存池释放" << endl;
+		_alloc.deallocate((ListNode*)ptr, 1);
 	}
-private:
-	int _a;
+
+	struct ListNode(int val)
+		:_val(val)
+		,_next(nullptr)
+	{}
 };
+
+// 现在会用即可
+allocator<ListNode> ListNode:: _alloc;
 
 int main()
 {
-	A* p1 = (A*)malloc(sizeof(A));
-	if (p1 == NULL) {
-		printf("malloc is failed\n");
-	}
+	// 频繁申请ListNode
+	ListNode* node1 = new ListNode(1);
+	ListNode* node2 = new ListNode(2);
+	ListNode* node3 = new ListNode(3);
+	ListNode* node4 = new ListNode(4);
 
-	// 1. 申请堆上的空间
-	// 2. 调用析构函数
-	A* p2 = new A;
-	// 也可以自己进行初始化
-	A* p3 = new A(10);
+	delete node1;
+	delete node2;
+	delete node3;
+	delete node4;
 
-	// 1. 调用析构函数清理对象中的资源
-	// 2. 释放p2指向的空间
-	delete p2;
-	delete p3;
-
-	A* p4 = new A[10];
-	delete[] p4;
-
-	// 结论： new/delete是为自定义类型准备的：
-	// 不仅在堆上申请出来，还会调用构造和析构进行对应的初始化和清理
+	return 0;
 }
+
